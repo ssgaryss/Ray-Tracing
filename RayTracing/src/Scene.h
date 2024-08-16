@@ -20,9 +20,4 @@ struct Scene
 {
 	std::vector<Sphere> m_Spheres;
 	std::vector<Material> m_Materials;
-	Scene() {
-		Material DefaultMaterial;
-		DefaultMaterial.m_Albedo = { 0.5f, 0.5f, 0.5f };
-		m_Materials.emplace_back(DefaultMaterial);
-	}
 };

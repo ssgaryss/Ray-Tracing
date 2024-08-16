@@ -2,6 +2,7 @@
 #include "Ray.h"
 
 #include <numeric>
+#include <iostream>
 
 namespace Util {
 	static uint32_t ConvertGLMColorToRGBA(const glm::vec4& vColor) {
@@ -59,6 +60,10 @@ glm::vec4 Renderer::perPixel(uint32_t x, uint32_t y)
 			Light += SkyClolor * Contribution;
 			break;
 		}
+		else {
+			const Sphere& Sphere = m_Scene->m_Spheres[HitPayload.m_SphereIndex];
+			Light += m_Scene->m_Materials[Sphere.m_MaterialIndex].m_Albedo;
+		}
 
 	}
 	return glm::vec4(Light, 1.0f);
@@ -78,10 +83,10 @@ Renderer::HitPayload Renderer::traceRay(const Ray& vRay)
 		const Sphere& Sphere = m_Scene->m_Spheres[i];
 		glm::vec3 OriginDistance = vRay.m_Origin - Sphere.m_Position;
 		float a = glm::dot(vRay.m_Direction, vRay.m_Direction);
-		float b = 2.0f * glm::dot(vRay.m_Direction, vRay.m_Origin);
-		float c = glm::dot(vRay.m_Origin, vRay.m_Origin) - Sphere.m_Radius * Sphere.m_Radius;
+		float b = 2.0f * glm::dot(OriginDistance, vRay.m_Direction);
+		float c = glm::dot(OriginDistance, OriginDistance) - Sphere.m_Radius * Sphere.m_Radius;
 
-		float Discriminant = b * b - 4 * a * c;
+		float Discriminant = b * b - 4.0f * a * c;
 		if (Discriminant < 0.0f)
 			continue;
 

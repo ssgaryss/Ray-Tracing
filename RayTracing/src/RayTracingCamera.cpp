@@ -5,6 +5,8 @@
 
 RayTracingCamera::RayTracingCamera()
 {
+	updateCameraInverseViewMatrix();
+	updateCameraInverseProjectionMatrix();
 	updateRayDirections();
 }
 
@@ -20,6 +22,7 @@ void RayTracingCamera::onUpdate(float vTimestep)
 		onKeyMove(vTimestep);
 		updatePosition();       // ×¢Òâ¸üÐÂm_Position
 	}
+	updateCameraInverseViewMatrix();
 }
 
 void RayTracingCamera::setViewportSize(float vWidth, float vHeight)
@@ -27,6 +30,7 @@ void RayTracingCamera::setViewportSize(float vWidth, float vHeight)
 	m_AspectRatio = vWidth / vHeight;
 	m_ViewportWidth = vWidth;
 	m_ViewportHeight = vHeight;
+	updateRayDirections();
 }
 
 void RayTracingCamera::setPosition(const glm::vec3& vPosition)

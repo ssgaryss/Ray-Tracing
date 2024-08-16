@@ -13,20 +13,32 @@ class EditorLayer : public Layer
 {
 public:
 	void OnAttach() override {
-		m_Renderer = std::make_unique<Renderer>(1000, 1000);
-		m_Renderer->setCamera(std::make_shared<RayTracingCamera>(m_EditorCamera));
-		m_Renderer->setScene(std::make_shared<Scene>(m_ActiveScene));
+		uint32_t Width = 1000;
+		uint32_t Height = 1000;
+		m_Renderer = std::make_unique<Renderer>(Width, Height);
+		m_Renderer->onResize(Width, Height);
+		m_EditorCamera = std::make_shared<RayTracingCamera>();
+		m_EditorCamera->setViewportSize(Width, Height);
+		m_ActiveScene = std::make_shared<Scene>();
+
+		m_Renderer->setCamera(m_EditorCamera);
+		m_Renderer->setScene(m_ActiveScene);
+
+		Material DefaultMaterial;
+		DefaultMaterial.m_Albedo = { 0.5f, 0.5f, 0.5f };
+		m_ActiveScene->m_Materials.emplace_back(DefaultMaterial);
 
 		Sphere BlueSphere;
 		BlueSphere.m_Radius = 5.0f;
-		m_ActiveScene.m_Spheres.emplace_back(BlueSphere);
+		m_ActiveScene->m_Spheres.emplace_back(BlueSphere);
 	}
 	void OnDetach() override {}
 
 	void OnUpdate(float ts) override {
-		m_Renderer->onResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
-		m_EditorCamera.onUpdate(ts);
-		m_Renderer->Render();
+		//m_Renderer->onResize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
+		//m_EditorCamera->setViewportSize(m_ViewportSize.x, m_ViewportSize.y);
+		m_EditorCamera->onUpdate(ts);
+		render();
 	}
 
 	void OnUIRender() override {
@@ -38,17 +50,27 @@ public:
 		ImGui::End();
 
 		ImGui::Begin("Settings");
+		ImGui::Text("Time : ");
+		ImGui::SameLine();
+		ImGui::Text(std::to_string(m_LastRenderTime).append(" ms").c_str());
 		if (ImGui::Button("Render")) {
 
 		}
 		ImGui::End();
 	}
+
+	void render() {
+		Timer Timer;
+		m_Renderer->Render();
+		m_LastRenderTime = Timer.ElapsedMillis();
+	}
 private:
 	std::unique_ptr<Renderer> m_Renderer = nullptr;
-	Scene m_ActiveScene;
-	RayTracingCamera m_EditorCamera;
+	std::shared_ptr<Scene> m_ActiveScene;
+	std::shared_ptr<RayTracingCamera> m_EditorCamera;
 	bool isShowSettingsPanel = true;
 	glm::vec2 m_ViewportSize{ 0.0f, 0.0f };
+	float m_LastRenderTime = 0.0f;
 };
 
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
