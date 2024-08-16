@@ -28,6 +28,11 @@ project "RayTracing"
         "Walnut"
     }
 
+    defines
+    {
+        "GLM_ENABLE_EXPERIMENTAL"
+    }
+
     filter "system:windows"
         systemversion "latest"
         defines { "WL_PLATFORM_WINDOWS" }
