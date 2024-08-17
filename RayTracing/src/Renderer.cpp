@@ -1,8 +1,10 @@
 #include "Renderer.h"
 #include "Ray.h"
 
+#include <Walnut/Random.h>
 #include <numeric>
-#include <iostream>
+#include <algorithm>
+#include <execution>
 
 namespace Util {
 	static uint32_t ConvertGLMColorToRGBA(const glm::vec4& vColor) {
@@ -18,30 +20,61 @@ Renderer::Renderer(uint32_t vWidth, uint32_t vHeight)
 {
 	m_ImageData = std::make_unique<std::vector<uint32_t>>(vWidth * vHeight);
 	m_RenderResult = std::make_shared<Walnut::Image>(vWidth, vHeight, Walnut::ImageFormat::RGBA, m_ImageData->data());
+	m_AccumulateColor = std::make_unique<std::vector<glm::vec4>>(vWidth * vHeight);
+	m_VerticalIterator.resize(vHeight);
+	std::iota(m_VerticalIterator.begin(), m_VerticalIterator.end(), 0);
+	m_HorizontalIterator.resize(vWidth);
+	std::iota(m_HorizontalIterator.begin(), m_HorizontalIterator.end(), 0);
 }
 
 void Renderer::onResize(uint32_t vWidth, uint32_t vHeight)
 {
 	if (m_RenderResult) {
-		if (vWidth == m_RenderResult->GetWidth() && vHeight == m_RenderResult->GetHeight()) {
+		if (vWidth == m_RenderResult->GetWidth() && vHeight == m_RenderResult->GetHeight())
 			return;
-			m_RenderResult->Resize(vWidth, vHeight);
-		}
+		m_RenderResult->Resize(vWidth, vHeight);
+		m_ImageData->resize(vWidth * vHeight);
+		m_AccumulateColor->resize(vWidth * vHeight);
+		m_VerticalIterator.resize(vHeight);
+		std::iota(m_VerticalIterator.begin(), m_VerticalIterator.end(), 0);
+		m_HorizontalIterator.resize(vWidth);
+		std::iota(m_HorizontalIterator.begin(), m_HorizontalIterator.end(), 0);
 	}
 }
 
 void Renderer::Render()
 {
-	uint32_t Width = m_RenderResult->GetWidth();
-	uint32_t Height = m_RenderResult->GetHeight();
 	if (m_Scene && m_Camera) {
-		for (uint32_t y = 0; y < Height; ++y) {
-			for (uint32_t x = 0; x < Width; ++x) {
+		if (m_FrameIndex == 1)
+			std::memset(m_AccumulateColor->data(), 0, m_AccumulateColor->size() * sizeof(glm::vec4));
+#if 0
+		for (uint32_t y = 0; y < m_RenderResult->GetHeight(); ++y) {
+			for (uint32_t x = 0; x < m_RenderResult->GetWidth(); ++x) {
 				auto Color = perPixel(x, y);
-				m_ImageData->at(y * Width + x) = Util::ConvertGLMColorToRGBA(Color);
+				m_ImageData->at(y * m_RenderResult->GetWidth() + x) = Util::ConvertGLMColorToRGBA(Color);
 			}
 		}
+#else
+		std::for_each(std::execution::par, m_VerticalIterator.begin(), m_VerticalIterator.end(),
+			[this](uint32_t y) {
+				std::for_each(m_HorizontalIterator.begin(), m_HorizontalIterator.end(),
+				[&y, this](uint32_t x) {
+						auto Color = perPixel(x, y);
+						m_AccumulateColor->at(y * m_RenderResult->GetWidth() + x) += Color;
+						glm::vec4 AccumulateColor = m_AccumulateColor->at(y * m_RenderResult->GetWidth() + x);
+						AccumulateColor /= (float)m_FrameIndex;
+						AccumulateColor = glm::clamp(AccumulateColor, glm::vec4(0.0f), glm::vec4(1.0f));
+						m_ImageData->at(y * m_RenderResult->GetWidth() + x) = Util::ConvertGLMColorToRGBA(AccumulateColor);
+					});
+			});
+#endif
 		m_RenderResult->SetData(m_ImageData->data());
+		if (m_Settings.m_IsAccumulate) {
+			m_FrameIndex++;
+		}
+		else {
+			m_FrameIndex = 1;
+		}
 	}
 
 }
@@ -52,7 +85,7 @@ glm::vec4 Renderer::perPixel(uint32_t x, uint32_t y)
 	glm::vec3 Light{ 0.0f };         // 光线颜色
 	glm::vec3 Contribution{ 1.0f };  // 权重
 
-	int Bounce = 1;
+	int Bounce = 256;
 	for (int i = 0; i < Bounce; ++i) {
 		auto& HitPayload = traceRay(Ray);
 		if (HitPayload.m_HitDistance < 0.0f) {
@@ -62,7 +95,13 @@ glm::vec4 Renderer::perPixel(uint32_t x, uint32_t y)
 		}
 		else {
 			const Sphere& Sphere = m_Scene->m_Spheres[HitPayload.m_SphereIndex];
-			Light += m_Scene->m_Materials[Sphere.m_MaterialIndex].m_Albedo;
+			const Material& Material = m_Scene->m_Materials[Sphere.m_MaterialIndex];
+			Contribution *= Material.m_Albedo;
+			Light += Material.getEmission();
+
+			Ray.m_Origin = HitPayload.m_WorldPosition + HitPayload.m_WorldNormal * 0.0001f;
+			//Ray.m_Direction = glm::normalize(HitPayload.m_WorldNormal + Walnut::Random::InUnitSphere());
+			Ray.m_Direction = glm::reflect(Ray.m_Direction, HitPayload.m_WorldNormal + Material.m_Roughness * Walnut::Random::InUnitSphere());
 		}
 
 	}
