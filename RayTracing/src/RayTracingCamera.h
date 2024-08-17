@@ -12,7 +12,7 @@ public:
 public:
 	RayTracingCamera();
 
-	void onUpdate(float vTimestep);
+	bool onUpdate(float vTimestep); // “∆∂Ø¡À∑µªÿtrue
 
 	void setViewportSize(float vWidth, float vHeight);
 	void setPosition(const glm::vec3& vPosition);

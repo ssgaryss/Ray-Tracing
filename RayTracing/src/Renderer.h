@@ -9,6 +9,11 @@
 class Renderer
 {
 public:
+	struct Settings
+	{
+		bool m_IsAccumulate = true;
+	};
+public:
 	Renderer() = default;
 	Renderer(uint32_t vWidth, uint32_t vHeight);
 
@@ -18,6 +23,7 @@ public:
 	inline void setScene(const std::shared_ptr<Scene>& vScene) { m_Scene = vScene; }
 	inline void setCamera(const std::shared_ptr<RayTracingCamera>& vCamera) { m_Camera = vCamera; }
 	inline const std::shared_ptr<Walnut::Image>& getRenderResult() const { return m_RenderResult; }
+	inline void resetFrameIndex() { m_FrameIndex = 1; }
 private:
 	struct HitPayload
 	{
@@ -35,8 +41,13 @@ private:
 private:
 	std::shared_ptr<Walnut::Image> m_RenderResult = nullptr;
 	std::unique_ptr<std::vector<uint32_t>> m_ImageData;
+	Settings m_Settings;
+	std::unique_ptr<std::vector<glm::vec4>> m_AccumulateColor;
+	uint32_t m_FrameIndex = 1;
 
 	std::shared_ptr<Scene> m_Scene = nullptr;
 	std::shared_ptr<RayTracingCamera> m_Camera = nullptr;
+	// Muti-thread
+	std::vector<uint32_t> m_VerticalIterator, m_HorizontalIterator;
 };
 

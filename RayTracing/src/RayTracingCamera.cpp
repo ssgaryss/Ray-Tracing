@@ -11,18 +11,38 @@ RayTracingCamera::RayTracingCamera()
 }
 
 
-void RayTracingCamera::onUpdate(float vTimestep)
+bool RayTracingCamera::onUpdate(float vTimestep)
 {
+	bool Moved = false;
 	// TODO : 这里并没有用Shortcut无法更改按键
 	if (Walnut::Input::IsKeyDown(Walnut::KeyCode::LeftAlt) || Walnut::Input::IsKeyDown(Walnut::KeyCode::RightAlt)) {
 		const glm::vec2 MousePosition = Walnut::Input::GetMousePosition();
 		glm::vec2 Delta = (MousePosition - m_MousePosition) * 0.03f;
-		onMouseRotate(Delta);
 		m_MousePosition = MousePosition;
-		onKeyMove(vTimestep);
+		if (Walnut::Input::IsMouseButtonDown(Walnut::MouseButton::Left))
+			onMouseRotate(Delta), Moved = true;
+		if (Walnut::Input::IsMouseButtonDown(Walnut::MouseButton::Middle))
+			onMousePan(Delta), Moved = true;
+		if (Walnut::Input::IsMouseButtonDown(Walnut::MouseButton::Right))
+			onMouseZoom(Delta.y), Moved = true;
 		updatePosition();       // 注意更新m_Position
 	}
-	updateCameraInverseViewMatrix();
+	if (Walnut::Input::IsMouseButtonDown(Walnut::MouseButton::Right)) {
+		const glm::vec2 MousePosition = Walnut::Input::GetMousePosition();
+		glm::vec2 Delta;
+		Delta.x = std::clamp(MousePosition.x - m_MousePosition.x, -50.0f, 50.0f) * 0.03f;
+		Delta.y = std::clamp(MousePosition.y - m_MousePosition.y, -50.0f, 50.0f) * 0.03f;
+		m_MousePosition = MousePosition;
+		onMouseRotate(Delta);
+		onKeyMove(vTimestep);   // 注意更新m_FocalPoint
+		updateFocalPoint();
+		Moved = true;
+	}
+	if (Moved) {
+		updateCameraInverseViewMatrix();
+		updateRayDirections();
+	}
+	return Moved;
 }
 
 void RayTracingCamera::setViewportSize(float vWidth, float vHeight)
@@ -31,6 +51,7 @@ void RayTracingCamera::setViewportSize(float vWidth, float vHeight)
 	m_ViewportWidth = vWidth;
 	m_ViewportHeight = vHeight;
 	updateRayDirections();
+	updateCameraInverseProjectionMatrix();
 }
 
 void RayTracingCamera::setPosition(const glm::vec3& vPosition)
