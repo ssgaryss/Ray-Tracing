@@ -32,15 +32,24 @@ public:
 
 		Material Blue; // 1
 		Blue.m_Albedo = { 0.1f, 0.1f, 0.8f };
+		Blue.m_Roughness = 0.0f;
 		m_ActiveScene->m_Materials.emplace_back(Blue);
 
 		Material Water; // 2
-		Water.m_Albedo = { 1.0f, 0.8f, 0.2f };
+		Water.m_Albedo = { 0.08f, 0.765f, 0.84f };
+		Water.m_Roughness = 0.2f;
 		m_ActiveScene->m_Materials.emplace_back(Water);
 
 		Material Pink; // 3
 		Pink.m_Albedo = { 0.9f, 0.1f, 0.9f };
+		Pink.m_Roughness = 0.0f;
 		m_ActiveScene->m_Materials.emplace_back(Pink);
+
+		Material Light; // 4
+		Light.m_Albedo = { 1.0f, 1.0f, 0.5f };
+		Light.m_EmissionColor = { 1.0f, 0.7f, 0.2f };
+		Light.m_EmissionPower = 1.0f;
+		m_ActiveScene->m_Materials.emplace_back(Light);
 
 		Sphere BlueSphere;
 		BlueSphere.m_Radius = 5.0f;
@@ -52,6 +61,13 @@ public:
 		PinkSphere.m_Position = { 10.0f, 3.0f, 3.0f };
 		PinkSphere.m_MaterialIndex = 3;
 		m_ActiveScene->m_Spheres.emplace_back(PinkSphere);
+
+		Sphere LightSphere;
+		LightSphere.m_Radius = 11.8f;
+		LightSphere.m_Position = { 40.0f, 10.0f, 100.0f };
+		LightSphere.m_MaterialIndex = 4;
+		m_ActiveScene->m_Spheres.emplace_back(LightSphere);
+
 
 		Sphere Ground;
 		Ground.m_Position = { 0.0f, 0.0f, -1010.0f };
@@ -79,12 +95,28 @@ public:
 		ImGui::Text("Time : ");
 		ImGui::SameLine();
 		ImGui::Text(std::to_string(m_LastRenderTime).append(" ms").c_str());
-		if (ImGui::Button("Render")) {
 
-		}
-		if (ImGui::DragFloat3("Blue Sphere Position", glm::value_ptr(m_ActiveScene->m_Spheres[0].m_Position), 0.1f))
-			m_Renderer->resetFrameIndex();
-		if (ImGui::DragFloat3("Pink Sphere Position", glm::value_ptr(m_ActiveScene->m_Spheres[1].m_Position), 0.1f))
+		bool IsResetFrameIndex = false;
+		ImGui::Text("Blue Sphere");
+		IsResetFrameIndex |= ImGui::DragFloat3("##Blue Sphere Position", glm::value_ptr(m_ActiveScene->m_Spheres[0].m_Position), 0.1f);
+		IsResetFrameIndex |= ImGui::ColorEdit3("Albedo##Blue", glm::value_ptr(m_ActiveScene->m_Materials[1].m_Albedo));
+		ImGui::Separator();
+		ImGui::Text("Pink Sphere");
+		IsResetFrameIndex |= ImGui::DragFloat3("##Pink Sphere Position", glm::value_ptr(m_ActiveScene->m_Spheres[1].m_Position), 0.1f);
+		IsResetFrameIndex |= ImGui::ColorEdit3("Albedo##Pink", glm::value_ptr(m_ActiveScene->m_Materials[3].m_Albedo));
+		ImGui::Separator();
+		ImGui::Text("Light Sphere");
+		IsResetFrameIndex |= ImGui::DragFloat3("##Light Sphere Position", glm::value_ptr(m_ActiveScene->m_Spheres[2].m_Position), 0.1f);
+		IsResetFrameIndex |= ImGui::DragFloat("Radius##Light", &m_ActiveScene->m_Spheres[2].m_Radius, 0.2f, 1.0f, 1000.0f);
+		IsResetFrameIndex |= ImGui::ColorEdit3("Albedo##Light", glm::value_ptr(m_ActiveScene->m_Materials[4].m_Albedo));
+		IsResetFrameIndex |= ImGui::DragFloat("Power##Light", &m_ActiveScene->m_Materials[4].m_EmissionPower, 0.2f, 0.0f, 1000.0f);
+		IsResetFrameIndex |= ImGui::ColorEdit3("Light Color##Light", glm::value_ptr(m_ActiveScene->m_Materials[4].m_EmissionColor));
+		ImGui::Separator();
+		ImGui::Text("Water");
+		IsResetFrameIndex |= ImGui::DragFloat("Power##Water", &m_ActiveScene->m_Materials[2].m_EmissionPower, 0.2f, 0.0f, 1000.0f);
+		IsResetFrameIndex |= ImGui::ColorEdit3("Light Color##Water", glm::value_ptr(m_ActiveScene->m_Materials[2].m_EmissionColor));
+		ImGui::Separator();
+		if (IsResetFrameIndex)
 			m_Renderer->resetFrameIndex();
 		ImGui::End();
 	}

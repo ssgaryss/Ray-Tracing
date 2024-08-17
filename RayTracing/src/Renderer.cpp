@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Ray.h"
 
+#include <Walnut/Random.h>
 #include <numeric>
 #include <algorithm>
 #include <execution>
@@ -84,7 +85,7 @@ glm::vec4 Renderer::perPixel(uint32_t x, uint32_t y)
 	glm::vec3 Light{ 0.0f };         // 光线颜色
 	glm::vec3 Contribution{ 1.0f };  // 权重
 
-	int Bounce = 5;
+	int Bounce = 256;
 	for (int i = 0; i < Bounce; ++i) {
 		auto& HitPayload = traceRay(Ray);
 		if (HitPayload.m_HitDistance < 0.0f) {
@@ -96,9 +97,11 @@ glm::vec4 Renderer::perPixel(uint32_t x, uint32_t y)
 			const Sphere& Sphere = m_Scene->m_Spheres[HitPayload.m_SphereIndex];
 			const Material& Material = m_Scene->m_Materials[Sphere.m_MaterialIndex];
 			Contribution *= Material.m_Albedo;
+			Light += Material.getEmission();
 
-			Ray.m_Origin = HitPayload.m_WorldPosition;
-			Ray.m_Direction = HitPayload.m_WorldNormal;
+			Ray.m_Origin = HitPayload.m_WorldPosition + HitPayload.m_WorldNormal * 0.0001f;
+			//Ray.m_Direction = glm::normalize(HitPayload.m_WorldNormal + Walnut::Random::InUnitSphere());
+			Ray.m_Direction = glm::reflect(Ray.m_Direction, HitPayload.m_WorldNormal + Material.m_Roughness * Walnut::Random::InUnitSphere());
 		}
 
 	}
